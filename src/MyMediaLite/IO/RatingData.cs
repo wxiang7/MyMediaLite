@@ -26,6 +26,47 @@ namespace MyMediaLite.IO
 	/// <summary>Class that offers methods for reading in rating data</summary>
 	public static class RatingData
 	{
+        static public IRatings ReadMatrix(string filename, bool ignore_first_line = false)
+        {
+            using (var reader = new StreamReader(filename))
+            {
+                var ratings = new Ratings();
+                var user_mapping = new IdentityMapping();
+                var item_mapping = new IdentityMapping();
+                string line;
+                int user_count = 0, item_count = 0;
+
+                if (ignore_first_line)
+                    reader.ReadLine();
+
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (line.Length == 0)
+                        continue;
+
+                    string[] tokens = line.Split(Constants.SPLIT_CHARS);
+                    if (item_count == 0)
+                        item_count = tokens.Length;
+
+                    var user_id = user_count;
+                    user_count += 1;
+
+                    if (item_count != tokens.Length)
+                        throw new FormatException("Wrong Number of Ratings:" + line);
+
+                    for (var i = 0; i < item_count; ++i)
+                    {
+                        int item_id = i;
+                        float rating = float.Parse(tokens[i], CultureInfo.InvariantCulture);
+                        if (rating > 0)
+                            ratings.Add(user_id, item_id, rating);
+                    }
+                }
+                ratings.InitScale();
+                return ratings;
+            }
+        }
+
 		/// <summary>Read in rating data from a file</summary>
 		/// <param name="filename">the name of the file to read from</param>
 		/// <param name="user_mapping">mapping object for user IDs</param>
